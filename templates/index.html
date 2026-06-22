@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InstaGuard — Instagram Research Tool</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ── Reset & base ──────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #080b12;
+      --surface: #0e1420;
+      --card: #131a28;
+      --border: rgba(255, 255, 255, 0.07);
+      --accent: #ff6b6b;
+      --accent2: #ffc857;
+      --accent3: #4ecdc4;
+      --text: #e8edf5;
+      --muted: #5a6a84;
+      --radius: 16px;
+      --mono: 'DM Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise texture overlay ─────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Glow blobs ────────────────────────────────────────── */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .blob-1 {
+      width: 600px;
+      height: 600px;
+      background: #ff6b6b;
+      top: -200px;
+      right: -100px;
+    }
+
+    .blob-2 {
+      width: 500px;
+      height: 500px;
+      background: #4ecdc4;
+      bottom: -150px;
+      left: -100px;
+    }
+
+    .blob-3 {
+      width: 400px;
+      height: 400px;
+      background: #ffc857;
+      top: 40%;
+      left: 40%;
+    }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      padding: 48px 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .logo-text span {
+      color: var(--accent);
+    }
+
+    .badge {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      background: rgba(78, 205, 196, 0.12);
+      color: var(--accent3);
+      border: 1px solid rgba(78, 205, 196, 0.25);
+      padding: 4px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Hero ──────────────────────────────────────────────── */
+    .hero {
+      padding: 60px 0 48px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 54px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    /* ── Search card ───────────────────────────────────────── */
+    .search-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.4);
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .search-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .input-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    .at-prefix {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 500;
+      pointer-events: none;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px 14px 36px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15);
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--muted);
+    }
+
+    .options-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .option-label input[type="number"] {
+      width: 72px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      outline: none;
+      text-align: center;
+    }
+
+    .option-label input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 15px;
+      height: 15px;
+    }
+
+    /* ── Buttons ───────────────────────────────────────────── */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #ff4757);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(255, 107, 107, 0.35);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-test {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-test:hover {
+      border-color: var(--accent3);
+      color: var(--accent3);
+    }
+
+    .btn-test:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .cookie-ok {
+      margin-top: 12px;
+      background: rgba(78, 205, 196, 0.08);
+      border: 1px solid rgba(78, 205, 196, 0.25);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent3);
+    }
+
+    .cookie-bad {
+      margin-top: 12px;
+      background: rgba(255, 107, 107, 0.08);
+      border: 1px solid rgba(255, 107, 107, 0.25);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .cookie-steps {
+      margin-top: 8px;
+      line-height: 1.9;
+      opacity: 0.85;
+    }
+
+    /* ── Progress section ──────────────────────────────────── */
+    #progress-section {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 32px;
+      animation: fadeUp 0.3s ease;
+    }
+
+    .progress-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .progress-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+
+    .step.active {
+      color: var(--text);
+    }
+
+    .step.done {
+      color: var(--accent3);
+    }
+
+    .step-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    .step.active .step-dot {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .step.done .step-dot {
+      background: var(--accent3);
+    }
+
+    .progress-bar-wrap {
+      height: 4px;
+      background: var(--surface);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 999px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+
+    /* ── Results section ───────────────────────────────────── */
+    #results-section {
+      display: none;
+      animation: fadeUp 0.4s ease;
+    }
+
+    .profile-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-card::after {
+      content: '✓ scraped';
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent3);
+      background: rgba(78, 205, 196, 0.1);
+      border: 1px solid rgba(78, 205, 196, 0.2);
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+
+    .profile-info h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .profile-info .handle {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      font-size: 17px;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    /* ── Save location banner ──────────────────────────────── */
+    .save-banner {
+      background: rgba(78, 205, 196, 0.07);
+      border: 1px solid rgba(78, 205, 196, 0.2);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent3);
+    }
+
+    .save-banner .folder-icon {
+      font-size: 20px;
+    }
+
+    /* ── Stats grid ────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .stat-card .val {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .stat-card .lbl {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .stat-card.accent .val {
+      color: var(--accent);
+    }
+
+    .stat-card.accent2 .val {
+      color: var(--accent2);
+    }
+
+    .stat-card.accent3 .val {
+      color: var(--accent3);
+    }
+
+    /* ── Posts preview grid ────────────────────────────────── */
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+    }
+
+    .section-title span {
+      color: var(--text);
+    }
+
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .post-thumb {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+      position: relative;
+    }
+
+    .post-thumb:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+
+    .post-thumb img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+
+    .post-thumb .post-meta {
+      padding: 8px 10px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .post-thumb .video-badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    /* ── Actions row ───────────────────────────────────────── */
+    .actions-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      background: rgba(255, 107, 107, 0.06);
+      color: var(--accent);
+    }
+
+    /* ── History ───────────────────────────────────────────── */
+    #history-section {
+      margin-bottom: 60px;
+    }
+
+    .history-title {
+      font-size: 13px;
+      font-family: var(--mono);
+      color: var(--muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .history-item:hover {
+      border-color: var(--accent);
+    }
+
+    .history-item .h-user {
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--accent);
+    }
+
+    .history-item .h-count {
+      color: var(--muted);
+    }
+
+    .history-item .h-time {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    /* ── Error ─────────────────────────────────────────────── */
+    .error-box {
+      background: rgba(255, 107, 107, 0.08);
+      border: 1px solid rgba(255, 107, 107, 0.25);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 13px;
+      display: none;
+      margin-bottom: 20px;
+    }
+
+    /* ── Animations ────────────────────────────────────────── */
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    /* ── Footer ────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 20px 0;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    @media (max-width: 600px) {
+      .input-row {
+        flex-direction: column;
+      }
+
+      .profile-card {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .profile-stats {
+        justify-content: center;
+      }
+
+      .hero h1 {
+        letter-spacing: -0.5px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="wrapper">
+
+    <!-- Header -->
+    <header>
+      <a href="/" class="logo">
+        <div class="logo-icon">📸</div>
+        <div class="logo-text">Insta<span>Guard</span></div>
+      </a>
+      <div class="badge">RESEARCH TOOL</div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <h1>Download any <em>Instagram</em><br>profile in seconds</h1>
+      <p>Powered by Apify. Enter a public username and we'll fetch every post — metadata, images, captions, and stats.
+      </p>
+    </section>
+
+    <!-- Search Card -->
+    <div class="search-card">
+      <div class="input-row">
+        <div class="input-wrap">
+          <span class="at-prefix">@</span>
+          <input type="text" id="username-input" placeholder="username" autocomplete="off" autocorrect="off"
+            spellcheck="false" />
+        </div>
+        <button class="btn-primary" id="scrape-btn" onclick="startScrape()">
+          Guard Posts
+        </button>
+      </div>
+      <div class="options-row">
+        <label class="option-label">
+          Max posts:
+          <input type="number" id="max-posts" value="100" min="1" max="500" />
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="dl-images" checked />
+          Download images
+        </label>
+        <button class="btn-test" id="test-btn" onclick="testCookie()">🔑 Test Session</button>
+      </div>
+      <!-- Cookie status banner -->
+      <div id="cookie-banner" style="display:none"></div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-box" id="error-box"></div>
+
+    <!-- Progress -->
+    <div id="progress-section">
+      <div class="progress-header">
+        <div class="spinner" id="spinner"></div>
+        <div class="progress-title" id="progress-title">Initialising…</div>
+      </div>
+      <div class="step-list" id="step-list"></div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-section">
+
+      <!-- Profile card -->
+      <div class="profile-card" id="profile-card">
+        <img class="profile-avatar" id="profile-avatar" src="" alt="avatar" onerror="this.style.display='none'" />
+        <div class="profile-info">
+          <h2 id="profile-name"></h2>
+          <div class="handle" id="profile-handle"></div>
+          <div class="profile-stats" id="profile-stats"></div>
+        </div>
+      </div>
+
+      <!-- Save location -->
+      <div class="save-banner">
+        <span class="folder-icon">📁</span>
+        <span>Saved to: <strong id="save-path">—</strong></span>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stats-grid" id="stats-grid"></div>
+
+      <!-- Posts preview -->
+      <div class="section-title">Post preview — <span id="preview-count">0</span> posts</div>
+      <div class="posts-grid" id="posts-grid"></div>
+
+      <!-- Actions -->
+      <div class="actions-row">
+        <button class="btn-outline" onclick="downloadCSV()">⬇ Download CSV</button>
+        <button class="btn-outline" onclick="copyJSON()">📋 Copy JSON path</button>
+        <button class="btn-primary" onclick="resetForm()">+ New Search</button>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div id="history-section">
+      <div class="history-title">Recent scrapes</div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <footer>InstaGuard · Academic use only · Powered by Apify</footer>
+
+  </div><!-- /wrapper -->
+
+  <script>
+    // ── State ──────────────────────────────────────────────────
+    let currentJobId = null;
+    let currentSSE = null;
+    let currentResult = null;
+
+    const STEPS = [
+      { key: "starting", label: "Launching Apify actor…" },
+      { key: "running", label: "Actor is running…" },
+      { key: "polling", label: "Waiting for results…" },
+      { key: "fetching", label: "Downloading dataset…" },
+      { key: "saving", label: "Saving posts to disk…" },
+      { key: "images", label: "Downloading images…" },
+      { key: "done", label: "All done!" },
+    ];
+    const stepProgress = { starting: 10, running: 20, polling: 40, fetching: 60, saving: 75, images: 90, done: 100 };
+
+    // ── DOM refs ───────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+
+    // ── Start scrape ───────────────────────────────────────────
+    async function startScrape() {
+      const username = $("username-input").value.trim().replace(/^@/, "");
+      const maxPosts = parseInt($("max-posts").value) || 100;
+
+      if (!username) {
+        showError("Please enter an Instagram username.");
+        return;
+      }
+
+      hideError();
+      setLoading(true);
+      showSection("progress-section");
+      hideSection("results-section");
+      renderSteps();
+
+      try {
+        const res = await fetch("/api/scrape", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, max_posts: maxPosts }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to start scrape");
+
+        currentJobId = data.job_id;
+        $("progress-title").textContent = `Scraping @${username}…`;
+        listenProgress(currentJobId);
+      } catch (err) {
+        showError(err.message);
+        setLoading(false);
+        hideSection("progress-section");
+      }
+    }
+
+    // ── SSE progress ───────────────────────────────────────────
+    function listenProgress(jobId) {
+      if (currentSSE) currentSSE.close();
+      currentSSE = new EventSource(`/api/progress/${jobId}`);
+
+      currentSSE.onmessage = e => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === "ping") return;
+
+        if (msg.type === "progress") {
+          updateStep(msg.step, msg.detail);
+        } else if (msg.type === "done") {
+          currentSSE.close();
+          handleDone(msg.data);
+        } else if (msg.type === "error") {
+          currentSSE.close();
+          setLoading(false);
+          showError("Scrape failed: " + msg.message);
+          hideSection("progress-section");
+        }
+      };
+
+      currentSSE.onerror = () => {
+        // SSE closed normally after done, ignore
+      };
+    }
+
+    // ── Step rendering ─────────────────────────────────────────
+    function renderSteps() {
+      const list = $("step-list");
+      list.innerHTML = STEPS.map(s => `
+    <div class="step" id="step-${s.key}">
+      <div class="step-dot"></div>
+      <span>${s.label}</span>
+    </div>
+  `).join("");
+      setProgress(0);
+    }
+
+    function updateStep(key, detail) {
+      // Mark previous steps done, current active
+      let found = false;
+      STEPS.forEach(s => {
+        const el = $(`step-${s.key}`);
+        if (!el) return;
+        if (s.key === key) { el.className = "step active"; found = true; }
+        else if (!found) { el.className = "step done"; }
+        else { el.className = "step"; }
+      });
+
+      if (detail) {
+        const el = $(`step-${key}`);
+        if (el) el.querySelector("span").textContent = `${STEPS.find(s => s.key === key)?.label || key} ${detail}`;
+      }
+
+      setProgress(stepProgress[key] || 0);
+    }
+
+    function setProgress(pct) {
+      $("progress-bar").style.width = pct + "%";
+    }
+
+    // ── Handle done ────────────────────────────────────────────
+    function handleDone(data) {
+      currentResult = data;
+      updateStep("done", "");
+      setProgress(100);
+
+      setTimeout(() => {
+        hideSection("progress-section");
+        renderResults(data);
+        showSection("results-section");
+        setLoading(false);
+        loadHistory();
+      }, 800);
+    }
+
+    // ── Render results ─────────────────────────────────────────
+    function renderResults(data) {
+      const p = data.profile || {};
+
+      // Profile card
+      const avatar = $("profile-avatar");
+      if (p.profile_pic) {
+        avatar.src = p.profile_pic;
+        avatar.style.display = "block";
+      }
+      $("profile-name").textContent = p.full_name || p.username || data.username;
+      $("profile-handle").textContent = "@" + (p.username || data.username);
+
+      $("profile-stats").innerHTML = [
+        { v: fmtNum(p.followers), l: "Followers" },
+        { v: fmtNum(p.following), l: "Following" },
+        { v: fmtNum(p.total_posts), l: "Total Posts" },
+      ].map(s => `<div class="stat"><span class="stat-value">${s.v || "—"}</span><span class="stat-label">${s.l}</span></div>`).join("");
+
+      // Save path
+      $("save-path").textContent = data.output_dir || "—";
+
+      // Stat cards
+      const posts = data.posts || [];
+      const totalLikes = posts.reduce((a, p) => a + (p.likes || 0), 0);
+      const totalComments = posts.reduce((a, p) => a + (p.comments_count || 0), 0);
+      const videoCount = posts.filter(p => p.is_video).length;
+
+      $("stats-grid").innerHTML = [
+        { v: fmtNum(data.total), l: "Posts Scraped", cls: "accent" },
+        { v: fmtNum(totalLikes), l: "Total Likes", cls: "accent2" },
+        { v: fmtNum(totalComments), l: "Total Comments", cls: "accent3" },
+        { v: videoCount, l: "Videos / Reels", cls: "" },
+      ].map(s => `
+    <div class="stat-card ${s.cls}">
+      <div class="val">${s.v}</div>
+      <div class="lbl">${s.l}</div>
+    </div>
+  `).join("");
+
+      // Posts grid (first 20)
+      $("preview-count").textContent = fmtNum(data.total);
+      $("posts-grid").innerHTML = posts.slice(0, 20).map(post => `
+    <div class="post-thumb" onclick="window.open('${post.post_url}','_blank')">
+      ${post.image_url
+          ? `<img src="${post.image_url}" alt="" loading="lazy" onerror="this.parentElement.style.background='#1a2133';this.remove()" />`
+          : `<div style="aspect-ratio:1;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:28px;">📷</div>`
+        }
+      ${post.is_video ? '<span class="video-badge">▶ Video</span>' : ''}
+      <div class="post-meta">
+        <span>❤ ${fmtNum(post.likes)}</span>
+        <span>💬 ${fmtNum(post.comments_count)}</span>
+      </div>
+    </div>
+  `).join("");
+    }
+
+    // ── Actions ────────────────────────────────────────────────
+    function downloadCSV() {
+      if (!currentResult?.csv_path) return;
+      window.open("/data/" + currentResult.csv_path.split("/data/")[1], "_blank");
+    }
+
+    function copyJSON() {
+      if (!currentResult?.output_dir) return;
+      navigator.clipboard.writeText(currentResult.output_dir)
+        .then(() => alert("Path copied to clipboard:\n" + currentResult.output_dir));
+    }
+
+    function resetForm() {
+      hideSection("results-section");
+      $("username-input").value = "";
+      $("username-input").focus();
+      currentResult = null;
+    }
+
+    // ── History ────────────────────────────────────────────────
+    async function loadHistory() {
+      try {
+        const res = await fetch("/api/jobs");
+        const jobs = await res.json();
+        const done = jobs.filter(j => j.status === "done").slice(0, 6);
+        const list = $("history-list");
+
+        if (!done.length) { list.innerHTML = '<div style="font-size:12px;color:var(--muted);font-family:var(--mono)">No previous scrapes yet.</div>'; return; }
+
+        list.innerHTML = done.map(j => `
+      <div class="history-item" onclick="reuseJob('${j.username}')">
+        <span class="h-user">@${j.username}</span>
+        <span class="h-count">${fmtNum(j.result?.total || 0)} posts</span>
+        <span class="h-time">${timeAgo(j.started_at)}</span>
+      </div>
+    `).join("");
+      } catch { }
+    }
+
+    function reuseJob(username) {
+      $("username-input").value = username;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ── Helpers ────────────────────────────────────────────────
+    function showSection(id) { $(id).style.display = "block"; }
+    function hideSection(id) { $(id).style.display = "none"; }
+    function showError(msg) { const b = $("error-box"); b.textContent = "⚠ " + msg; b.style.display = "block"; }
+    function hideError() { $("error-box").style.display = "none"; }
+    function setLoading(on) { $("scrape-btn").disabled = on; $("username-input").disabled = on; }
+
+    function fmtNum(n) {
+      n = parseInt(n) || 0;
+      if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+      if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+      return n.toString();
+    }
+
+    function timeAgo(iso) {
+      const diff = Date.now() - new Date(iso).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return "just now";
+      if (m < 60) return m + "m ago";
+      const h = Math.floor(m / 60);
+      if (h < 24) return h + "h ago";
+      return Math.floor(h / 24) + "d ago";
+    }
+
+    // ── Test cookie ────────────────────────────────────────────
+    async function testCookie() {
+      const btn = $("test-btn");
+      const banner = $("cookie-banner");
+      btn.disabled = true;
+      btn.textContent = "Testing…";
+      banner.style.display = "none";
+
+      try {
+        const res = await fetch("/api/test-cookie");
+        const data = await res.json();
+
+        if (data.ok) {
+          banner.className = "cookie-ok";
+          banner.innerHTML = `✓ Session is VALID — logged in as <strong>@${data.username}</strong>. You're ready to scrape!`;
+          banner.style.display = "block";
+        } else {
+          banner.className = "cookie-bad";
+          banner.innerHTML = `
+        <strong>✗ Session INVALID or EXPIRED</strong>
+        <div class="cookie-steps">
+          Follow these steps to get a fresh cookie:<br>
+          1. Open <strong>Chrome</strong> → go to <strong>instagram.com</strong> → log in<br>
+          2. Press <strong>F12</strong> → <strong>Application</strong> tab → <strong>Cookies</strong> → <code>instagram.com</code><br>
+          3. Find the cookie named <strong>sessionid</strong><br>
+          4. Copy the <strong>Value</strong> column (long string like <code>12345678%3AaB...</code>)<br>
+          5. Open <strong>.env</strong> and set <code>INSTAGRAM_SESSION_ID=&lt;paste value&gt;</code><br>
+          6. <strong>Restart</strong> the app (<code>python app.py</code>)<br>
+          7. Click <strong>Test Session</strong> again to confirm
+        </div>`;
+          banner.style.display = "block";
+        }
+      } catch (err) {
+        banner.className = "cookie-bad";
+        banner.innerHTML = "⚠ Could not reach server: " + err.message;
+        banner.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "🔑 Test Session";
+      }
+    }
+
+    // ── Enter key ──────────────────────────────────────────────
+    $("username-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") startScrape();
+    });
+
+    // ── Init ───────────────────────────────────────────────────
+    loadHistory();
+  </script>
+</body>
+
+</html>
